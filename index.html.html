@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>忘れ物ゼロ！持ち物リマインダー</title>
+<style>
+:root{--ink:#202a44;--muted:#68738a;--line:#e2e8f0;--bg:#f4f7fb;--blue:#4668e8;--blue2:#eef2ff;--green:#16845b;--red:#c43e50}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+header{background:linear-gradient(135deg,#4668e8,#8158d9);color:#fff;padding:28px 16px 34px}
+.hero,.wrap{max-width:850px;margin:auto}.hero h1{font-size:clamp(25px,5vw,36px);margin:8px 0}.hero p{margin:0;color:#edf0ff}
+.wrap{padding:18px 14px 50px}.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:16px;box-shadow:0 5px 20px #273b6310}
+h2{font-size:19px;margin:0 0 14px}.sub{color:var(--muted);font-size:13px;line-height:1.6}
+.tabs{display:flex;gap:8px;margin-bottom:16px}.tab{flex:1;border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px;font-weight:700;color:var(--muted);cursor:pointer}.tab.active{background:var(--blue2);border-color:#bfcaff;color:var(--blue)}
+input,select,button{font:inherit}input[type=text],input[type=date],input[type=time],select{width:100%;min-width:0;border:1px solid #cfd7e5;border-radius:10px;padding:11px;background:#fff;color:var(--ink)}
+button{cursor:pointer}.btn{border:0;border-radius:10px;background:var(--blue);color:#fff;font-weight:700;padding:11px 14px}.btn.secondary{background:#eef1f7;color:var(--ink)}.btn.green{background:var(--green)}.btn.red{background:#fff0f1;color:var(--red)}.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.field label{display:block;font-size:13px;font-weight:700;margin:0 0 6px}.full{grid-column:1/-1}
+.days{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.day{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 11px;color:var(--muted)}.day.on{background:var(--blue2);color:var(--blue);border-color:#bfcaff}
+.list{display:grid;gap:8px}.item{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:11px}.item input[type=checkbox]{width:20px;height:20px;accent-color:var(--green);flex-shrink:0}.item .name{flex:1;overflow-wrap:anywhere}.item.done .name{text-decoration:line-through;color:#8b95a7}.tag{font-size:11px;background:#f0f3f8;padding:4px 7px;border-radius:7px;color:var(--muted)}.smallbtn{border:0;background:#f1f3f8;border-radius:8px;padding:7px 9px;color:var(--muted)}
+.progress{height:9px;background:#e8edf5;border-radius:99px;overflow:hidden;margin:8px 0 14px}.progress div{height:100%;background:var(--green);width:0;transition:width .2s}
+.notice{background:#fff8df;border:1px solid #f2df9b;color:#765800;padding:12px;border-radius:12px;font-size:13px;line-height:1.6;margin-bottom:14px}.status{font-size:13px;color:var(--muted);margin-top:10px;line-height:1.6}.reminder{border:1px solid var(--line);border-radius:12px;padding:13px;display:flex;gap:10px;align-items:flex-start}.reminder .info{flex:1}.reminder strong{display:block}.reminder p{font-size:13px;color:var(--muted);margin:4px 0 0}.empty{text-align:center;color:var(--muted);padding:22px 8px}.hidden{display:none!important}.pill{font-size:11px;color:var(--blue);background:var(--blue2);border-radius:99px;padding:4px 8px;display:inline-block;margin-top:6px}
+@media(max-width:520px){.formgrid{grid-template-columns:1fr}.full{grid-column:auto}.card{padding:15px}.row.mobile-stack{flex-direction:column;align-items:stretch}.item{padding:10px}}
+</style>
+</head>
+<body>
+<header><div class="hero"><div>🎒 毎日の学校生活をサポート</div><h1>忘れ物ゼロ！持ち物リマインダー</h1><p>出発前のチェックと、忘れないためのお知らせ。</p></div></header>
+<main class="wrap">
+<div class="notice">🔔 <b>通知について：</b>通知を許可すると、サイトを開いている間に指定時刻をチェックしてお知らせします。ブラウザを閉じている間も確実に鳴らすには、別途プッシュ通知の仕組みが必要です。</div>
+<div class="card">
+<h2>🔔 通知・音の設定</h2>
+<div class="row mobile-stack">
+<button class="btn" id="enableNotifications">通知を有効にする</button>
+<button class="btn secondary" id="testSound">音をテスト</button>
+<button class="btn secondary" id="testNotification">通知をテスト</button>
+</div>
+<div class="status" id="notificationStatus" aria-live="polite">通知の状態を確認しています。</div>
+</div>
+<div class="tabs">
+<button class="tab active" data-tab="check">🎒 持ち物チェック</button>
+<button class="tab" data-tab="reminders">⏰ リマインダー</button>
+</div>
+<section id="checkView">
+<div class="card">
+<h2>📅 チェックする曜日</h2>
+<div class="days" id="weekdayButtons"></div>
+<p class="sub">曜日ごとに持ち物を管理できます。チェック状態は日付が変わるとリセットされます。</p>
+</div>
+<div class="card">
+<div class="row"><h2 style="margin:0;flex:1">持ち物リスト</h2><span id="progressText" class="tag">0 / 0</span></div>
+<div class="progress"><div id="progressBar"></div></div>
+<div class="list" id="itemsList"></div>
+<div class="row mobile-stack" style="margin-top:12px"><input id="newItem" type="text" placeholder="持ち物を追加（例：英語の教科書）" maxlength="80"><button class="btn" id="addItem">追加する</button></div>
+<div class="row mobile-stack" style="margin-top:10px"><button class="btn secondary" id="resetChecks">チェックを全部外す</button><button class="btn secondary" id="restoreDefaults">初期の持ち物を追加</button></div>
+</div>
+</section>
+<section id="remindersView" class="hidden">
+<div class="card">
+<h2>➕ リマインダーを作成</h2>
+<div class="formgrid">
+<div class="field full"><label for="reminderTitle">何を知らせる？</label><input id="reminderTitle" type="text" maxlength="100" placeholder="例：家を出る前に持ち物を確認"></div>
+<div class="field"><label for="reminderDate">日付</label><input id="reminderDate" type="date"></div>
+<div class="field"><label for="reminderTime">時刻</label><input id="reminderTime" type="time" value="07:30"></div>
+<div class="field"><label for="repeatType">繰り返し</label><select id="repeatType"><option value="once">一度だけ</option><option value="daily">毎日</option><option value="weekdays">平日（月〜金）</option><option value="weekly">選んだ曜日</option></select></div>
+<div class="field"><label for="reminderSound">お知らせ方法</label><select id="reminderSound"><option value="both">通知＋音</option><option value="notification">通知のみ</option><option value="sound">音のみ</option></select></div>
+<div class="field full" id="repeatDaysWrap"><label>繰り返す曜日（「選んだ曜日」のとき）</label><div class="days" id="repeatDays"></div></div>
+</div>
+<button class="btn green" id="saveReminder" style="width:100%;margin-top:14px">リマインダーを保存</button>
+<div class="status">※ 時刻になったら、サイトを開いている間にお知らせします。通知を使うには、上の「通知を有効にする」で許可してください。</div>
+</div>
+<div class="card">
+<h2>🕒 登録済みリマインダー</h2>
+<div class="list" id="reminderList"></div>
+</div>
+</section>
+<div class="card">
+<h2>💾 データの保存</h2>
+<p class="sub">このブラウザに自動保存されます。同じ端末・同じブラウザで開いたときにデータが残ります。ブラウザのデータを消すと、保存内容も消える場合があります。</p>
+<div class="row mobile-stack"><button class="btn secondary" id="exportData">バックアップを書き出す</button><label class="btn secondary" style="text-align:center">バックアップを読み込む<input id="importData" type="file" accept="application/json" hidden></label></div>
+<div class="status" id="saveStatus" aria-live="polite">自動保存が有効です。</div>
+</div>
+</main>
+<script>
+(() => {
+const STORAGE_KEY='forget_zero_reminder_v1';
+const weekdays=['日','月','火','水','木','金','土'];
+const defaults=['筆箱','スマートフォン','財布・定期券','生徒手帳','教科書','ノート','ワーク・提出物','タブレット／PC','充電器','水筒','ハンカチ・ティッシュ','体育着'];
+const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+const currentDay=()=>new Date().getDay();
+let data=loadData();
+let selectedDay=currentDay();
+let fired=new Set();
+let audioContext=null;
+function loadData(){
+ try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');return {items:Array.isArray(x.items)?x.items:defaults.map((name,i)=>({id:'i'+i,name,days:[0,1,2,3,4,5,6]})),checks:x.checks&&typeof x.checks==='object'?x.checks:{},reminders:Array.isArray(x.reminders)?x.reminders:[]}}
+ catch{return {items:defaults.map((name,i)=>({id:'i'+i,name,days:[0,1,2,3,4,5,6]})),checks:{},reminders:[]}}
+}
+function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));document.getElementById('saveStatus').textContent='自動保存済み：'+new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});}catch{document.getElementById('saveStatus').textContent='保存できませんでした。ブラウザの設定を確認してください。'}}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function checkKey(day){return today()+'_'+day}
+function checkedSet(day){const key=checkKey(day);if(!data.checks[key])data.checks[key]={};return data.checks[key]}
+function renderDays(){
+ const b=document.getElementById('weekdayButtons');b.innerHTML='';
+ weekdays.forEach((d,i)=>{const btn=document.createElement('button');btn.className='day'+(selectedDay===i?' on':'');btn.textContent=d+'曜日';btn.onclick=()=>{selectedDay=i;renderDays();renderItems()};b.appendChild(btn)});
+ const rb=document.getElementById('repeatDays');rb.innerHTML='';
+ weekdays.forEach((d,i)=>{const btn=document.createElement('button');btn.className='day'+((data.repeatDays||[1,2,3,4,5]).includes(i)?' on':'');btn.textContent=d;btn.onclick=()=>{let a=data.repeatDays||[1,2,3,4,5];data.repeatDays=a.includes(i)?a.filter(v=>v!==i):[...a,i];data.repeatDays.sort();renderDays()};rb.appendChild(btn)});
+}
+function renderItems(){
+ const list=document.getElementById('itemsList'),checks=checkedSet(selectedDay),items=data.items.filter(it=>!Array.isArray(it.days)||it.days.includes(selectedDay));
+ list.innerHTML='';
+ if(!items.length){list.innerHTML='<div class="empty">この曜日の持ち物はまだありません。</div>'}
+ items.forEach(it=>{const row=document.createElement('div');row.className='item'+(checks[it.id]?' done':'');row.innerHTML=`<input type="checkbox" aria-label="${escapeHtml(it.name)}を確認" ${checks[it.id]?'checked':''}><span class="name">${escapeHtml(it.name)}</span><button class="smallbtn" aria-label="${escapeHtml(it.name)}を削除">削除</button>`;row.querySelector('input').onchange=e=>{checks[it.id]=e.target.checked;save();renderItems()};row.querySelector('button').onclick=()=>{if(confirm('「'+it.name+'」を削除しますか？')){data.items=data.items.filter(x=>x.id!==it.id);save();renderItems()}};list.appendChild(row)});
+ const done=items.filter(it=>checks[it.id]).length;document.getElementById('progressText').textContent=`${done} / ${items.length} 完了`;document.getElementById('progressBar').style.width=(items.length?done/items.length*100:0)+'%';
+}
+function renderReminders(){
+ const list=document.getElementById('reminderList');list.innerHTML='';
+ if(!data.reminders.length){list.innerHTML='<div class="empty">まだリマインダーがありません。</div>';return}
+ [...data.reminders].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).forEach(r=>{
+  const el=document.createElement('div');el.className='reminder';
+  const repeat={once:'一度だけ',daily:'毎日',weekdays:'平日',weekly:'選んだ曜日'}[r.repeat]||'一度だけ';
+  const dateText=r.repeat==='daily'?'毎日':r.repeat==='weekdays'?'月〜金':r.repeat==='weekly'?(r.days||[]).map(d=>weekdays[d]).join('・')+'曜日':r.date;
+  el.innerHTML=`<div class="info"><strong>${escapeHtml(r.title)}</strong><p>${escapeHtml(dateText)} ${escapeHtml(r.time)} ／ ${repeat}</p><span class="pill">${r.mode==='sound'?'音のみ':r.mode==='notification'?'通知のみ':'通知＋音'}</span></div><button class="smallbtn">削除</button>`;
+  el.querySelector('button').onclick=()=>{data.reminders=data.reminders.filter(x=>x.id!==r.id);save();renderReminders()};list.appendChild(el);
+ });
+}
+function setStatus(t){document.getElementById('notificationStatus').textContent=t}
+function notificationSupported(){return 'Notification' in window && window.isSecureContext}
+async function enableNotifications(){
+ if(!('Notification' in window)){setStatus('このブラウザは通知に対応していません。');return}
+ if(!window.isSecureContext){setStatus('通知にはHTTPSのサイト、またはlocalhostで開く必要があります。');return}
+ try{const p=await Notification.requestPermission();setStatus(p==='granted'?'通知を許可しました。テスト通知を試せます。':p==='denied'?'通知が拒否されています。ブラウザのサイト設定で許可してください。':'通知はまだ許可されていません。')}catch{setStatus('通知設定を変更できませんでした。')}
+}
+function playSound(){
+ try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC){setStatus('このブラウザでは音を再生できません。');return}
+  audioContext=audioContext||new AC();if(audioContext.state==='suspended')audioContext.resume();
+  [0,1,2].forEach((n)=>{const o=audioContext.createOscillator(),g=audioContext.createGain(),start=audioContext.currentTime+n*.22;o.type='sine';o.frequency.value=[880,1046,880][n];g.gain.setValueAtTime(.0001,start);g.gain.exponentialRampToValueAtTime(.18,start+.02);g.gain.exponentialRampToValueAtTime(.0001,start+.18);o.connect(g);g.connect(audioContext.destination);o.start(start);o.stop(start+.2)});
+ }catch{setStatus('音を再生できませんでした。もう一度ボタンを押してください。')}
+}
+function sendNotice(title,body,mode){
+ if(mode==='sound'||mode==='both')playSound();
+ if((mode==='notification'||mode==='both')&&notificationSupported()&&Notification.permission==='granted'){
+  try{new Notification(title,{body,tag:'reminder-'+Date.now()})}catch{}
+ }else if(mode!=='sound'){setStatus('通知を表示できませんでした。通知の許可状態を確認してください。')}
+}
+function reminderMatches(r,now){
+ const date=today(),day=now.getDay(),time=now.toTimeString().slice(0,5);
+ if(r.time!==time)return false;
+ if(r.repeat==='daily')return true;
+ if(r.repeat==='weekdays')return day>=1&&day<=5;
+ if(r.repeat==='weekly')return (r.days||[]).includes(day);
+ return r.date===date;
+}
+function checkReminders(){
+ const now=new Date(),date=today(),time=now.toTimeString().slice(0,5);
+ data.reminders.forEach(r=>{
+  if(!reminderMatches(r,now))return;
+  const key=r.id+'_'+date+'_'+time;if(fired.has(key))return;fired.add(key);
+  sendNotice('⏰ '+r.title,'リマインダーの時間です。忘れ物がないか確認しよう！',r.mode||'both');
+  if(r.repeat==='once'){data.reminders=data.reminders.filter(x=>x.id!==r.id);save();renderReminders()}
+ });
+}
+function showTab(tab){
+ document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+ document.getElementById('checkView').classList.toggle('hidden',tab!=='check');
+ document.getElementById('remindersView').classList.toggle('hidden',tab!=='reminders');
+}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+document.getElementById('addItem').onclick=()=>{const input=document.getElementById('newItem'),name=input.value.trim();if(!name){input.focus();return}data.items.push({id:'i'+Date.now()+Math.random().toString(16).slice(2),name,days:[selectedDay]});input.value='';save();renderItems()};
+document.getElementById('newItem').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('addItem').click()});
+document.getElementById('resetChecks').onclick=()=>{if(confirm('選んでいる曜日のチェックを全部外しますか？')){data.checks[checkKey(selectedDay)]={};save();renderItems()}};
+document.getElementById('restoreDefaults').onclick=()=>{const existing=new Set(data.items.map(x=>x.name));defaults.filter(n=>!existing.has(n)).forEach((name,i)=>data.items.push({id:'d'+Date.now()+i,name,days:[0,1,2,3,4,5,6]}));save();renderItems()};
+document.getElementById('repeatType').onchange=e=>document.getElementById('repeatDaysWrap').classList.toggle('hidden',e.target.value!=='weekly');
+document.getElementById('saveReminder').onclick=()=>{
+ const title=document.getElementById('reminderTitle').value.trim(),date=document.getElementById('reminderDate').value,time=document.getElementById('reminderTime').value,repeat=document.getElementById('repeatType').value,mode=document.getElementById('reminderSound').value;
+ if(!title){alert('リマインダーの内容を入力してください。');return}
+ if(!time){alert('時刻を選んでください。');return}
+ if(repeat==='once'&&!date){alert('日付を選んでください。');return}
+ if(repeat==='weekly'&&!(data.repeatDays||[1,2,3,4,5]).length){alert('繰り返す曜日を1つ以上選んでください。');return}
+ data.reminders.push({id:'r'+Date.now()+Math.random().toString(16).slice(2),title,date:date||today(),time,repeat,mode,days:[...(data.repeatDays||[1,2,3,4,5])]});
+ save();renderReminders();document.getElementById('reminderTitle').value='';showTab('reminders');setStatus('リマインダーを保存しました。指定時刻に知らせるため、このサイトを開いたままにしてください。');
+};
+document.getElementById('enableNotifications').onclick=enableNotifications;
+document.getElementById('testSound').onclick=()=>{playSound();setStatus('音のテストを実行しました。')};
+document.getElementById('testNotification').onclick=()=>{if(!notificationSupported()){setStatus('テスト通知にはHTTPSのサイト（またはlocalhost）と通知対応ブラウザが必要です。');return}if(Notification.permission==='granted'){new Notification('忘れ物ゼロ！持ち物リマインダー',{body:'テスト通知です。通知が表示されました！'});setStatus('テスト通知を送信しました。')}else setStatus('先に「通知を有効にする」を押してください。')};
+document.getElementById('exportData').onclick=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='forget-zero-backup.json';a.click();URL.revokeObjectURL(url)};
+document.getElementById('importData').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());if(!Array.isArray(x.items)||!Array.isArray(x.reminders))throw Error();data={items:x.items,checks:x.checks||{},reminders:x.reminders,repeatDays:x.repeatDays||[1,2,3,4,5]};save();renderDays();renderItems();renderReminders();alert('バックアップを読み込みました。')}catch{alert('このバックアップファイルは読み込めませんでした。')}e.target.value=''};
+if(!data.repeatDays)data.repeatDays=[1,2,3,4,5];
+document.getElementById('reminderDate').value=today();
+if('Notification' in window){setStatus(Notification.permission==='granted'?'通知は許可済みです。':'通知はまだ設定されていません。')}else{setStatus('このブラウザでは通知機能が利用できません。')}
+renderDays();renderItems();renderReminders();save();
+setInterval(checkReminders,15000);
+})();
+</script>
+</body>
+</html>
